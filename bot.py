@@ -1,26 +1,24 @@
-from enum import member
-from xmlrpc import client
-
 import discord
 from discord.ext import commands
-from flask import ctx
-from config import token  # Import the bot's token from configuration file
+from config import token
 
 intents = discord.Intents.default()
-intents.members = True  # Allows the bot to work with users and ban them
+intents.members = True 
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+client = discord.Client(intents=intents)
 
-@bot.event
+client = commands.Bot(command_prefix='!', intents=intents)
+
+@client.event
 async def on_ready():
-    print(f'Logged in as {bot.user.name}')
+    print(f'Logged in as {client.user.name}')
 
-@bot.command()
+@client.command()
 async def start(ctx):
     await ctx.send("Hi! I'm a chat manager bot!")
 
-@bot.command()
+@client.command()
 @commands.has_permissions(ban_members=True)
 async def ban(ctx, member: discord.Member = None):
     if member:
@@ -39,15 +37,14 @@ async def ban_error(ctx, error):
     elif isinstance(error, commands.MemberNotFound):
         await ctx.send("User not found.")
 
-@bot.event
+@client.event
 async def on_message(message):
-    await message.channel.send(message.content)
+    if message.author == client.user:
+        return
     if message.content == "https://":
-        await ctx.guild.ban(member)
+        await message.author.ban(reason="Posting links is not allowed.")
+        await message.delete()
+    await client.process_commands(message)
 
-@bot.event
-async def on_member_join(member):
-    for channel in member.guild.text_channels:
-        await channel.send(f'Selamat datang, {member.mention}!')
 
-bot.run(token)
+client.run(token)
